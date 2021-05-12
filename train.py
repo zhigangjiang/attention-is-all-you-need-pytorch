@@ -59,11 +59,13 @@ def cal_loss(pred, gold, trg_pad_idx, smoothing=False):
 
 
 def patch_src(src, pad_idx):
+    # 交换纬度，batch_size在前
     src = src.transpose(0, 1)
     return src
 
 
 def patch_trg(trg, pad_idx):
+    # 交换纬度，batch_size在前
     trg = trg.transpose(0, 1)
     trg, gold = trg[:, :-1], trg[:, 1:].contiguous().view(-1)
     return trg, gold
@@ -77,9 +79,11 @@ def train_epoch(model, training_data, optimizer, opt, device, smoothing):
 
     desc = '  - (Training)   '
     for batch in tqdm(training_data, mininterval=2, desc=desc, leave=False):
-
         # prepare data
+        # 在torchtext中如果未指定每个example长度则默认取这个batch中最长的作为固定长度，补padding
         src_seq = patch_src(batch.src, opt.src_pad_idx).to(device)
+        # trg_seq中可能不包含结束符号，达到序列最长自动结束
+        # gold不包含开始符号，用于计算loss？
         trg_seq, gold = map(lambda x: x.to(device), patch_trg(batch.trg, opt.trg_pad_idx))
 
         # forward
@@ -289,7 +293,7 @@ def main():
         d_v=opt.d_v,
         d_model=opt.d_model,
         d_word_vec=opt.d_word_vec,
-        d_inner=opt.d_inner_hid,
+        d_inner=opt.d_inner_hid,  # 前馈神经网络层中间fc层的维度
         n_layers=opt.n_layers,
         n_head=opt.n_head,
         dropout=opt.dropout,
